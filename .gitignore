@@ -216,3 +216,9 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# --- DAR ---
+.DS_Store
+# Research output defaults to ~/research/dar/ (NOT the repo); ignore any vault created inside the repo:
+/dar-vault/
+/research/

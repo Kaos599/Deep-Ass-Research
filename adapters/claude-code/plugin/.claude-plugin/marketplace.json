@@ -1,0 +1,11 @@
+{
+  "name": "dar-marketplace",
+  "owner": { "name": "Harsh", "email": "harsh@spectatr.ai" },
+  "plugins": [
+    {
+      "name": "deep-ass-research",
+      "source": "./",
+      "description": "IDE-agnostic deep-research framework. Installs the DAR skill, the role subagents, the /dar command, and (optionally) the prerequisite MCP servers."
+    }
+  ]
+}
