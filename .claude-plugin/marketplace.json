@@ -1,0 +1,11 @@
+{
+  "name": "dar-marketplace",
+  "owner": { "name": "Kaos599", "email": "harsh@spectatr.ai" },
+  "plugins": [
+    {
+      "name": "deep-ass-research",
+      "source": "./adapters/claude-code/plugin",
+      "description": "IDE-agnostic deep-research framework — fan-out scout/diver subagents, adversarial verification, and synthesis into a backlinked Obsidian vault. Installs the DAR skill, the role subagents, the /dar command, and (on enable) the prerequisite MCP servers."
+    }
+  ]
+}

@@ -26,29 +26,10 @@ Then in Claude Code just ask for *"deep research on X"* or run `/deep-ass-resear
 
 ## 2. Claude Code — as a **plugin** (shareable; registers role subagents + `/dar` + auto-wires MCP)
 
-The plugin scaffold lives in `adapters/claude-code/plugin/`. It must be **assembled once** from the canonical `core/` (so the role prompts aren't duplicated by hand), then installed via a marketplace.
+The repo ships a **pre-assembled** plugin (`adapters/claude-code/plugin/`) and a marketplace manifest at the repo root, so install is one step:
 
 ```bash
-# assemble the plugin (copies SKILL.md + core/ in, generates agents/dar-*.md from core/roles/):
-cd adapters/claude-code/plugin
-bash -c '
-BUNDLE="$(cd ../../.. && pwd)"; set -e
-mkdir -p skills/deep-ass-research agents
-cp "$BUNDLE/SKILL.md" skills/deep-ass-research/SKILL.md
-cp -R "$BUNDLE/core" skills/deep-ass-research/core
-for r in scout deep-diver skeptic arbiter librarian synthesizer relevance-monitor; do
-  d=$(grep -m1 "^# Role:" "$BUNDLE/core/roles/$r.md" | sed "s/^# Role: *//")
-  { printf -- "---\nname: dar-%s\ndescription: \"DAR — %s\"\nmodel: inherit\n---\n\n" "$r" "${d:-$r}"; cat "$BUNDLE/core/roles/$r.md"; } > "agents/dar-$r.md"
-done
-echo "assembled $(ls agents | wc -l) agents"'
-cd -
-```
-
-Then point Claude Code at it (a local marketplace works; or host the assembled `plugin/` dir as its own repo):
-
-```bash
-# the plugin dir contains .claude-plugin/{plugin.json,marketplace.json}, .mcp.json, commands/, skills/, agents/
-/plugin marketplace add ./adapters/claude-code/plugin
+/plugin marketplace add Kaos599/Deep-Ass-Research
 /plugin install deep-ass-research@dar-marketplace
 ```
 
