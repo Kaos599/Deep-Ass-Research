@@ -93,7 +93,18 @@ The principles behind each step (why they exist) — straight out of how good re
 
 ## 📦 Install
 
-> Optional but recommended: set whichever API keys you have (`TAVILY_API_KEY`, `EXA_API_KEY`, …). DAR runs on a host's built-in web tools and is *maximized* by Tavily / Exa / TinyFish / Context7 / Ref — see [`core/PREREQUISITES.md`](core/PREREQUISITES.md). Missing tools degrade loudly, never silently.
+> [!TIP]
+> **Recommended: set up these MCP servers _first_, then install DAR.** It runs on a host's built-in web tools, but is *maximized* by this free toolset — each one powers a capability verb:
+>
+> | MCP server | Powers in DAR |
+> |---|---|
+> | **Exa** | semantic / neural `SEARCH` — papers, people, companies |
+> | **Tavily** | structured web `SEARCH` + `FETCH` (date-filterable) |
+> | **TinyFish** | `BROWSE` — social / authenticated / interactive pages |
+> | **Context7** | `READ_DOCS` — version-accurate library & API docs |
+> | **Ref** | `READ_DOCS` — specs, standards, references |
+>
+> Set the matching keys (`EXA_API_KEY`, `TAVILY_API_KEY`, …) in your environment. On the Claude Code **plugin** path they're auto-wired from `.mcp.json` (you just enable them once). Anything missing degrades loudly, never silently — details in [`core/PREREQUISITES.md`](core/PREREQUISITES.md).
 
 ### Claude Code — plugin (one command, auto-wires MCP)
 
