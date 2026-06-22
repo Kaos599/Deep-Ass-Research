@@ -30,10 +30,16 @@ export const meta = {
 
 const { vault, mode, brief, roles, playbook } = args
 // Token guards — bound the loops so a run can't blow the budget:
-const MAX_DEPTH = 4            // max depth iterations
-const BATCH = 5               // threads dived per iteration
-const VERIFY_CAP = 24         // max claims sent to adversarial verification
-const SYNTH_RESERVE = 60_000  // tokens held back for synthesis (enforced only if budget.total is set)
+const MAX_DEPTH = 4               // max depth iterations
+const BATCH = 5                   // threads dived per iteration
+const VERIFY_CAP = 24             // hard ceiling on claims sent to verification
+const SYNTH_RESERVE = 60_000      // tokens held back for synthesis (if budget.total is set)
+// Per-phase token ceilings (estimated TOTAL tokens). The sandbox can't meter total tokens, so we
+// convert these into spawn limits via per-agent cost estimates — tune EST_* to your source sizes.
+const DEPTH_TOKEN_CAP = 400_000   // keep the Depth phase under ~400K
+const VERIFY_TOKEN_CAP = 200_000  // keep the Verify (skeptics) phase under ~200K
+const EST_DIVE = 55_000           // est. total tokens per diver (role + full-primary FETCH + output)
+const EST_SKEPTIC = 20_000        // est. total tokens per skeptic (role + cached-raw read + verdict)
 
 const groupBy = (arr, key) => arr.reduce((m, x) => ((m[x[key]] ||= []).push(x), m), {})
 const rank = c => ({ low: 0, medium: 1, high: 2 }[c] ?? 1)
@@ -94,16 +100,21 @@ const seen = new Set()
 const allClaims = []
 let iter = 0
 let escalation = null
-log(`DAR pipeline: mode=${mode}, ${backlog.length} thread(s) queued; MAX_DEPTH=${MAX_DEPTH}, BATCH=${BATCH}, VERIFY_CAP=${VERIFY_CAP}.`)
+let depthSpentEst = 0
+log(`DAR pipeline: mode=${mode}, ${backlog.length} thread(s) queued; caps: depth≈${DEPTH_TOKEN_CAP / 1000}K, verify≈${VERIFY_TOKEN_CAP / 1000}K, MAX_DEPTH=${MAX_DEPTH}.`)
 
 while (iter < MAX_DEPTH) {
   const ready = backlog.filter(t => t.status === 'ready' && !seen.has(t.id))
   if (!ready.length) { log('Depth backlog dry.'); break }
   if (budget.total && budget.remaining() < SYNTH_RESERVE) { log('Reserving budget for synthesis; ending depth.'); break }
 
-  const batch = ready.slice(0, BATCH)
+  // Depth token ceiling: only take as many divers as fit under DEPTH_TOKEN_CAP.
+  const affordable = Math.floor((DEPTH_TOKEN_CAP - depthSpentEst) / EST_DIVE)
+  if (affordable < 1) { log(`Depth token cap (~${DEPTH_TOKEN_CAP / 1000}K) reached; ending depth.`); break }
+  const batch = ready.slice(0, Math.min(BATCH, affordable))
   batch.forEach(t => seen.add(t.id))
-  log(`Depth iteration ${iter + 1}: diving ${batch.length} thread(s).`)
+  depthSpentEst += batch.length * EST_DIVE
+  log(`Depth iter ${iter + 1}: diving ${batch.length} thread(s) (≈${Math.round(depthSpentEst / 1000)}K/${DEPTH_TOKEN_CAP / 1000}K est).`)
 
   const dives = (await parallel(batch.map(t => () =>
     agent(ctx('deep-diver', `Go deep on thread ${t.id}: ${t.desc}. FETCH full primaries into ${vault}/raw/, write atomic claim notes into ${vault}/sources/.`),
@@ -141,8 +152,9 @@ if (escalation) {
 
 // ---------- PHASE: VERIFY (adversarial refute, 2-of-3 majority) ----------
 phase('Verify')
-// Token guard: rank by importance, cap how many claims get the 3× skeptic fan-out,
-// and drop to 1 skeptic when budget is tight. Skipped claims keep their stated confidence (logged).
+// Token guard: stay under VERIFY_TOKEN_CAP. Rank by importance, then greedily spend the cap —
+// 3 skeptics on load-bearing claims while budget allows, then 1, then stop. Skipped claims keep
+// their stated confidence (logged, never silently dropped).
 const ranked = allClaims
   .filter(c => c.loadBearing || c.confidence !== 'high')
   .sort((a, b) => (Number(b.loadBearing) - Number(a.loadBearing)) || (rank(a.confidence) - rank(b.confidence)))
@@ -152,16 +164,20 @@ const skipVerify = budget.total && budget.remaining() < SYNTH_RESERVE
 if (skipVerify) {
   log(`Budget reserved for synthesis — skipping adversarial verify; ${ranked.length} claim(s) kept at their stated confidence (logged, not silently dropped).`)
 } else {
-  let cap = VERIFY_CAP
-  if (budget.total) cap = Math.max(4, Math.min(cap, Math.floor((budget.remaining() - SYNTH_RESERVE) / 9_000)))
-  const toVerify = ranked.slice(0, Math.max(0, cap))
-  const skeptics = (budget.total && budget.remaining() < SYNTH_RESERVE * 3) ? 1 : 3
-  const skipped = ranked.length - toVerify.length
-  log(skipped > 0
-    ? `Budget guard: verifying top ${toVerify.length} claim(s) × ${skeptics} skeptic(s); ${skipped} lower-priority claim(s) kept at stated confidence (logged, not dropped).`
-    : `Verifying ${toVerify.length} claim(s) × ${skeptics} skeptic(s).`)
+  const tight = budget.total && budget.remaining() < SYNTH_RESERVE * 3  // also shrink if a global budget is tight
+  let vbudget = VERIFY_TOKEN_CAP
+  const plan = []
+  for (const c of ranked.slice(0, VERIFY_CAP)) {
+    const want = (!tight && c.loadBearing && vbudget >= 3 * EST_SKEPTIC) ? 3 : (vbudget >= EST_SKEPTIC ? 1 : 0)
+    if (!want) break
+    plan.push({ c, skeptics: want })
+    vbudget -= want * EST_SKEPTIC
+  }
+  const triple = plan.filter(p => p.skeptics === 3).length
+  const skipped = ranked.length - plan.length
+  log(`Verify under ~${VERIFY_TOKEN_CAP / 1000}K cap: ${plan.length} claim(s) [${triple}×3-skeptic, ${plan.length - triple}×1-skeptic], ${skipped} kept at stated confidence (≈${Math.round((VERIFY_TOKEN_CAP - vbudget) / 1000)}K est).`)
 
-  const votes = (await parallel(toVerify.flatMap(c =>
+  const votes = (await parallel(plan.flatMap(({ c, skeptics }) =>
     Array.from({ length: skeptics }, (_, i) => () =>
       agent(ctx('skeptic', `Try to REFUTE claim ${c.id}: "${c.claim}". Read its cached raw source(s): ${JSON.stringify(c.sourcePaths || [])}. You are skeptic #${i + 1} of ${skeptics} — vote independently.`),
         { label: `refute:${c.id}#${i + 1}`, phase: 'Verify', schema: VERDICT_SCHEMA })
@@ -169,7 +185,7 @@ if (skipVerify) {
   ))).filter(Boolean)
 
   const byClaim = groupBy(votes, 'claimId')
-  tallied = toVerify.map(c => {
+  tallied = plan.map(({ c, skeptics }) => {
     const vs = byClaim[c.id] || []
     const refuted = vs.filter(v => v.verdict === 'REFUTED').length
     const verdict = refuted * 2 > skeptics ? 'DISPUTED' : refuted > 0 ? 'CONTESTED' : 'CONFIRMED'
