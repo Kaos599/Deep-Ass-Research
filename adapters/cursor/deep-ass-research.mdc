@@ -1,0 +1,27 @@
+---
+description: Deep Ass Research (DAR) — run a rigorous multi-source, primary-sourced research process into a backlinked Obsidian vault. Apply when the user asks for deep/thorough/cited research, a knowledge map, a company/market/literature deep dive, or says "DAR" / "deep research" / "research X properly".
+alwaysApply: false
+---
+
+# Deep Ass Research (DAR) — Cursor adapter
+
+This is an **Agent-Requested** rule (`alwaysApply: false`, no `globs`): Cursor loads it when the description matches the request. It points Cursor's agent at the portable DAR methodology in the DAR bundle's `core/`.
+
+> Install: copy this file to `.cursor/rules/deep-ass-research.mdc` and make the DAR bundle's `core/` readable from the workspace (vendor it into the repo, or set the bundle path in this rule). See the bundle README.
+
+## How to run
+1. **Read `core/orchestration.md` and follow it exactly** — preflight → charter → breadth → gate → depth → drift guard → verify → synthesize → deliver. Read its referenced files (`core/capabilities.md`, `methodology.md`, `vault-layout.md`, `note-schemas.md`, `provenance.md`, the chosen `core/modes/<mode>.md`) as needed.
+2. **Spawn the roles as subagents.** Cursor has real, parallel subagents (2.4+). Either:
+   - reuse subagent files in `.cursor/agents/` (or the `.claude/agents/` files Cursor reads natively), or
+   - dispatch via the `Task` tool, pasting `core/roles/<role>.md` as the subagent prompt + a `## Task` context block. Issue multiple `Task` calls in one message to run scouts/divers in parallel.
+3. **Track progress** in the vault files `_progress.md` and `_open-threads.md`.
+
+## Capability bindings (Cursor)
+- `SPAWN_SUBAGENT` → subagents via the `Task` tool (parallel; `/multitask` for fan-out).
+- `ASK_USER` → the built-in `AskQuestion` tool. (Always call it for the gate check-in and any ESCALATE; nudge it explicitly in Agent mode.)
+- `SEARCH`/`FETCH` → built-in `WebSearch`/`WebFetch` — **prefer a named model** (these are flaky under the Auto model) — or a Tavily/Exa server from `.cursor/mcp.json`.
+- `BROWSE` → the `Browser` subagent (a browser MCP, e.g. Playwright).
+- `READ_DOCS` → Context7 / Ref MCP, else `WebSearch`+`WebFetch` on official docs.
+- `WRITE_FILE` → built-in edit tools.
+
+Record the actual bindings (and any degraded verbs) in `_session.md` during preflight. A `/dar` command lives in `.cursor/commands/dar.md`.

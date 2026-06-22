@@ -1,0 +1,32 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "instructions": ["core/orchestration.md"],
+  "mcp": {
+    "tavily": {
+      "type": "local",
+      "command": ["npx", "-y", "tavily-mcp"],
+      "enabled": true,
+      "environment": { "TAVILY_API_KEY": "{env:TAVILY_API_KEY}" }
+    },
+    "exa": {
+      "type": "remote",
+      "url": "https://mcp.exa.ai/mcp",
+      "enabled": true,
+      "headers": { "Authorization": "Bearer {env:EXA_API_KEY}" }
+    },
+    "context7": {
+      "type": "remote",
+      "url": "https://mcp.context7.com/mcp",
+      "enabled": true
+    }
+  },
+  "agent": {
+    "dar-scout":             { "mode": "subagent", "description": "DAR breadth scout — SEARCH-only landscape mapping of one thread", "prompt": "{file:./core/roles/scout.md}" },
+    "dar-deep-diver":        { "mode": "subagent", "description": "DAR depth diver — FETCH full primaries, write atomic claim notes", "prompt": "{file:./core/roles/deep-diver.md}" },
+    "dar-skeptic":           { "mode": "subagent", "description": "DAR skeptic — adversarially refute one claim from its raw source", "prompt": "{file:./core/roles/skeptic.md}" },
+    "dar-arbiter":           { "mode": "subagent", "description": "DAR arbiter — resolve contested/disputed claims", "prompt": "{file:./core/roles/arbiter.md}" },
+    "dar-librarian":         { "mode": "subagent", "description": "DAR librarian — dedupe, repair [[links]], tag, create entities", "prompt": "{file:./core/roles/librarian.md}" },
+    "dar-synthesizer":       { "mode": "subagent", "description": "DAR synthesizer — build MOC, report, reconcile open threads", "prompt": "{file:./core/roles/synthesizer.md}" },
+    "dar-relevance-monitor": { "mode": "subagent", "hidden": true, "description": "DAR drift guard — score a depth batch vs the charter", "prompt": "{file:./core/roles/relevance-monitor.md}" }
+  }
+}
