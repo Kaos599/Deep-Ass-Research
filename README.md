@@ -1,6 +1,6 @@
 <div align="center">
 
-# 🤿 Deep Ass Research
+# 🤿 Deep-Ass Research
 
 **Research like a paranoid PhD, not a search bar.**
 
@@ -15,9 +15,10 @@
 </p>
 
 <a href="#-before--after">Before / After</a> •
-<a href="#-how-it-works">How it works</a> •
-<a href="#-install">Install</a> •
-<a href="#-what-you-get">What you get</a> •
+<a href="#benchmarks">Benchmarks</a> •
+<a href="#how-it-works">How it works</a> •
+<a href="#install">Install</a> •
+<a href="#what-you-get">What you get</a> •
 <a href="INSTALL.md">Full install guide</a>
 
 </div>
@@ -55,7 +56,17 @@ One search. No source. No idea if it's current, self-reported, or made up.
 
 **Same question. One is a vibe. The other is a defensible, navigable answer you can audit.**
 
-## 🧭 How it works
+## Benchmarks
+
+<div align="center">
+<img src="assets/readme/bench-dark.png" alt="DAR benchmark — quality vs speed comparison" width="100%">
+</div>
+
+<div align="center">
+<img src="assets/readme/table-dark.png" alt="DAR benchmark — detailed results table" width="100%">
+</div>
+
+## How it works
 
 DAR has two halves that share one spine — the **charter** (what we're actually trying to answer). A **gate** stops it from going deep too early; a **drift guard** stops it from wandering once it's deep. The charter is a *compass, not a cage*: useful tangents get promoted, dead ones pruned.
 
@@ -91,7 +102,7 @@ The principles behind each step (why they exist) — straight out of how good re
 - **Don't fool yourself.** Skeptics are scored to *disprove* claims; disconfirming evidence is written **into** the note; contradictions are downgraded, never deleted.
 - **Synthesis is the contribution.** The deliverable is a navigable `_MOC.md` + `[[wikilink]]` graph + a report answering each criterion — not a wall of text.
 
-## 📦 Install
+## Install
 
 > [!TIP]
 > **Recommended: set up these MCP servers _first_, then install DAR.** It runs on a host's built-in web tools, but is *maximized* by this free toolset — each one powers a capability verb:
@@ -144,7 +155,7 @@ Load [`adapters/generic/AGENTS.md`](adapters/generic/AGENTS.md), or paste [`adap
 
 Full per-host details: **[INSTALL.md](INSTALL.md)**.
 
-## 🧰 What you get
+## What you get
 
 A self-contained Obsidian vault at `~/research/dar/<date>-<topic>-<id>/` (override with `DAR_VAULT_ROOT`):
 
@@ -189,7 +200,7 @@ deep-ass-research/
 **Start at [`core/orchestration.md`](core/orchestration.md)** — the runbook every adapter points to.
 </details>
 
-## 🎛️ Research modes
+## Research modes
 
 DAR picks a playbook by topic, each with its own decomposition and source strategy:
 
